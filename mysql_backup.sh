@@ -16,20 +16,20 @@ DEST_DB_USER="dbuser"
 DEST_DB_PASS="dbpassword"
 SSH_PORT=4420
 
-# ===== Step 1: Dump and compress =====
+# ===== Step 1: Dump and compress (DROP TABLE if exists) =====
 mysqldump -u"$SRC_USER" -p"$SRC_PASS" "$SRC_DB" $TABLES \
-  --single-transaction --quick --lock-tables=false | gzip > "$BACKUP_FILE"
+  --single-transaction --quick --lock-tables=false --add-drop-table | gzip > "$BACKUP_FILE"
 
 # ===== Step 2: Copy backup to VPS2 =====
 scp -P $SSH_PORT "$BACKUP_FILE" "$DEST_USER@$DEST_HOST:/home/$DEST_USER/"
 
-# ===== Step 3: Restore remotely =====
+# ===== Step 3: Restore remotely (fresh tables) =====
 ssh -p $SSH_PORT "$DEST_USER@$DEST_HOST" "
 gunzip -c /home/$DEST_USER/$(basename "$BACKUP_FILE") | \
 mysql -u$DEST_DB_USER -p$DEST_DB_PASS $DEST_DB
 "
 
-# ===== Step 4: Cleanup =====
+# ===== Step 4: Cleanup local backup =====
 rm -f "$BACKUP_FILE"
 
 # ===== Step 5: Logging =====
